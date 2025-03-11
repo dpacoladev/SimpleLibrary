@@ -1,8 +1,10 @@
 package dpacoladev.com.github.simple_library.controllers;
 
 import dpacoladev.com.github.simple_library.domain.user.AuthenticationDTO;
+import dpacoladev.com.github.simple_library.domain.user.LoginResponseDTO;
 import dpacoladev.com.github.simple_library.domain.user.RegisterDTO;
 import dpacoladev.com.github.simple_library.domain.user.User;
+import dpacoladev.com.github.simple_library.infra.security.TokenService;
 import dpacoladev.com.github.simple_library.repositories.UserRepository;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -19,17 +21,22 @@ import org.springframework.web.bind.annotation.RestController;
 public class AuthenticationController {
     private final AuthenticationManager authenticationManager;
     private final UserRepository userRepository;
+    private final TokenService tokenService;
 
-    public AuthenticationController(AuthenticationManager authenticationManager, UserRepository userRepository) {
+    public AuthenticationController(AuthenticationManager authenticationManager, UserRepository userRepository, TokenService tokenService) {
         this.authenticationManager = authenticationManager;
         this.userRepository = userRepository;
+        this.tokenService = tokenService;
     }
 
     @PostMapping("/login")
-    public ResponseEntity<Void> login(@RequestBody @Valid AuthenticationDTO data) {
+    public ResponseEntity<LoginResponseDTO> login(@RequestBody @Valid AuthenticationDTO data) {
         var usernamePassword = new UsernamePasswordAuthenticationToken(data.login(), data.password());
         var auth = this.authenticationManager.authenticate(usernamePassword);
-        return ResponseEntity.ok().build();
+        
+        var token = tokenService.generateToken((User) auth.getPrincipal());
+
+        return ResponseEntity.ok(new LoginResponseDTO(token));
     }
 
     @PostMapping("/register")
